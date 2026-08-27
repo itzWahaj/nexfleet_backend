@@ -1,0 +1,23 @@
+---
+description: API routes, response envelope, errors, and PostGIS TypeORM patterns
+globs: src/**/*.ts
+alwaysApply: false
+---
+
+# API conventions
+
+- Global prefix: `/api/v1`
+- Envelope: `{ success: boolean, data?: T, error?: { code, message } }`
+- Pagination: `?page=1&limit=20` → include `{ total, page, limit }`
+- Error codes: `VALIDATION_ERROR`, `INSUFFICIENT_BALANCE`, `FORBIDDEN_HUB_SCOPE`, `ORDER_STATE_CONFLICT`, `NOT_FOUND`
+
+## PostGIS columns
+
+```typescript
+@Column({ type: 'geometry', spatialFeatureType: 'Point', srid: 4326 })
+location: string;
+```
+
+Nearest hub / containing area: `createQueryBuilder` + `ST_SetSRID(ST_MakePoint(:lng, :lat), 4326)` via `.setParameters()`.
+
+`order.status`: `pending → assigned → accepted → picked_up → in_transit → delivered|returned → settled` (+ `cancelled` side branch).

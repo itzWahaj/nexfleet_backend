@@ -1,0 +1,36 @@
+---
+description: Flaship Courier backend — product context, stack, and build order
+alwaysApply: true
+---
+
+# Flaship Courier Backend
+
+API for flaship.pk courier/logistics. Merchants place orders → nearest hub → riders pick up/deliver → COD reconciled via wallet. Hubs are company-owned or franchised. RBAC: super_admin → hub_admin → rider.
+
+Admin panel and Flutter rider app are **separate repos**. This repo is the API they consume.
+
+## Stack (do not substitute without a strong reason)
+
+- Node 20 LTS, TypeScript **strict**
+- NestJS 10, TypeORM 0.3.x (PostGIS via `geometry` columns), PostgreSQL 15+ PostGIS
+- Redis (ioredis) + BullMQ
+- JWT access + refresh (`@nestjs/passport` + `@nestjs/jwt`)
+- class-validator + class-transformer, global ValidationPipe
+- `@nestjs/config` + validated env schema
+- Jest + Supertest, `@nestjs/swagger`, pino (`nestjs-pino`)
+- helmet + `@nestjs/throttler`
+
+## Build order (one step at a time; wait for review)
+
+1. Scaffold + TypeORM/PostGIS + env validation + health
+2. auth + users (JWT, role guard, hub-scope guard)
+3. hubs, zones, riders
+4. wallet (isolate + concurrency tests) before wiring to orders
+5. merchants + orders (signed webhook, nearest-hub, accept + hold)
+6. payouts + EOD settlement
+7. tracking + inter-hub-shipments
+8. notifications (FCM)
+
+## Module checklist
+
+entity → migration → DTOs → service → controller → module → `app.module.ts` → service unit tests → controller e2e

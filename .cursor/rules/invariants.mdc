@@ -1,0 +1,22 @@
+---
+description: Hard invariants for wallet, orders, hub-scoping, auth, and migrations
+alwaysApply: true
+---
+
+# Invariants
+
+1. **Never `synchronize: true`.** Schema changes are TypeORM migrations (`typeorm migration:generate`), committed and reviewed. Do not edit a migration after it has been merged.
+
+2. **Wallet writes only via `WalletService`.** No other module updates `wallets.current_balance`. Use `hold()`, `release()`, `credit()`, `debit()`, `transfer()`. Each method inserts a `wallet_transactions` row and updates the cached balance in the **same** DB transaction, with `SELECT ... FOR UPDATE` on the wallet row.
+
+3. **Money + order status = one transaction.** Accept (status → `accepted` + hold) and settle (status → `settled` + credit + payout) use a single `QueryRunner`. Any failure rolls back all of it.
+
+4. **Hub-scoping is server-side.** A `hub_admin` JWT carries `hub_ids[]`. `HubScopeGuard` injects `hub_id IN (...)` from the token. Never trust a client-supplied `hub_id` for a scoped user. `super_admin` bypasses the guard.
+
+5. **Auth is global.** `JwtAuthGuard` + `RolesGuard` apply globally. Public routes use `@Public()` only. No ad-hoc auth checks in controllers.
+
+6. **DTOs for every input.** No untyped `req.body`. Validate with class-validator.
+
+7. **flaship.pk webhooks** must verify HMAC (`FLASHIP_WEBHOOK_SECRET`) before processing. Never trust an unverified body.
+
+8. **PostGIS queries** use QueryBuilder + `.setParameters()`. Never string-concat coordinates into SQL.
