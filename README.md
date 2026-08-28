@@ -2,11 +2,13 @@
 
 NestJS 10 API for flaship.pk. Admin panel and the Flutter rider app live in separate repos; they consume this service.
 
-## Step 1 (current)
+## Step 4 (current)
 
-Scaffold, TypeORM + PostGIS connection (`synchronize: false`), validated env, health routes.
+`wallet` module — transactional balance changes via `WalletService` only, with pessimistic row locks and a concurrency integration test.
 
-Later steps (auth, hubs, wallet, orders, …) wait for explicit review before starting.
+## Steps 1–3 (done)
+
+Scaffold, health, auth + users, hubs/zones/riders with hub-scoped queries.
 
 ## Stack
 
@@ -19,39 +21,55 @@ Later steps (auth, hubs, wallet, orders, …) wait for explicit review before st
 
 ```bash
 docker compose up -d
-copy .env.example .env   # PowerShell: Copy-Item .env.example .env
+copy .env.example .env
 npm install
 npm run migration:run
+npm run seed
 npm run start:dev
 ```
 
-- API prefix: `http://localhost:3000/api/v1`
-- Live: `GET /api/v1/health`
-- Readiness (Postgres + Redis + PostGIS): `GET /api/v1/health/ready`
-- OpenAPI: `http://localhost:3000/api/docs`
+Docker Postgres is on **5433** to avoid clashing with a local PostgreSQL on 5432.
 
-This machine currently has Node 24; the brief asks for Node 20 LTS. Use `nvm use` (see `.nvmrc`) if you want to match production.
+**Dev accounts** (after `npm run seed`):
+
+| Role | Phone | Password |
+|---|---|---|
+| Super admin | `+923001234567` | `Admin123!` |
+| Hub admin | `+923009876543` | `HubAdmin123!` |
+
+Hub admin owns **Karachi Franchise Hub** (`hubs.owner_user_id`).
+
+## API (step 4)
+
+| Module | Routes |
+|---|---|
+| Wallets | `GET /wallets/owner/:ownerType/:ownerId`, `GET /wallets/:id`, `GET /wallets/:id/transactions`, `POST /wallets/:id/top-up` |
+
+**Top-up rules**
+
+- `super_admin` → credits a **hub** wallet (external top-up)
+- `hub_admin` → transfers from their hub wallet to a **rider** wallet (`hubId` required when rider has multiple assignments in scope)
+
+Balance is always read from `wallets.current_balance` (never computed client-side). All writes go through `WalletService.credit/debit/hold/release/transfer`.
 
 ## Scripts
 
 | Script | Purpose |
-| --- | --- |
+|---|---|
 | `npm run start:dev` | Watch mode |
-| `npm run migration:run` | Apply TypeORM migrations |
-| `npm run migration:generate -- src/database/migrations/Name` | Generate a migration from entity diffs |
-| `npm test` | Unit tests |
-| `npm run test:e2e` | Health e2e (mocked dependencies) |
+| `npm run migration:run` | Apply migrations |
+| `npm run seed` | Seed dev admin users + sample hub |
+| `npm test` | Unit + integration tests (Docker DB required for concurrency test) |
+| `SKIP_INTEGRATION_TESTS=true npm test` | Unit tests only |
+| `npm run test:e2e` | E2e tests (requires Docker DB) |
 
-`synchronize` is **never** enabled. Do not turn it on locally.
+## Build order
 
-## Response envelope
-
-```json
-{ "success": true, "data": {} }
-```
-
-Errors:
-
-```json
-{ "success": false, "error": { "code": "NOT_FOUND", "message": "..." } }
-```
+1. Scaffold + health ✓
+2. Auth + users ✓
+3. Hubs, zones, riders ✓
+4. Wallet *(current)*
+5. Merchants + orders
+6. Payouts + EOD
+7. Tracking + inter-hub shipments
+8. Notifications

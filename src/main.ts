@@ -1,6 +1,7 @@
 import { NestFactory } from '@nestjs/core';
 import { ConfigService } from '@nestjs/config';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
 import { Logger } from 'nestjs-pino';
 import { AppModule } from './app.module';
@@ -12,7 +13,14 @@ async function bootstrap() {
   app.enableShutdownHooks();
   app.setGlobalPrefix('api/v1');
   app.use(helmet());
-  app.enableCors();
+  app.use(cookieParser());
+
+  const config = app.get(ConfigService<AppConfig, true>);
+  const frontendUrl = config.get('FRONTEND_URL', { infer: true });
+  app.enableCors({
+    origin: frontendUrl,
+    credentials: true,
+  });
 
   const swaggerConfig = new DocumentBuilder()
     .setTitle('Flaship Courier API')
@@ -21,11 +29,11 @@ async function bootstrap() {
     )
     .setVersion('1.0')
     .addBearerAuth()
+    .addCookieAuth('access_token')
     .build();
   const document = SwaggerModule.createDocument(app, swaggerConfig);
   SwaggerModule.setup('api/docs', app, document);
 
-  const config = app.get(ConfigService<AppConfig, true>);
   const port = config.get('PORT', { infer: true });
   await app.listen(port);
 

@@ -22,6 +22,7 @@ export const envSchema = z.object({
   JWT_ACCESS_EXPIRES_IN: z.string().default('15m'),
   JWT_REFRESH_EXPIRES_IN: z.string().default('7d'),
   FLASHIP_WEBHOOK_SECRET: z.string().min(1),
+  FRONTEND_URL: z.string().url().default('http://localhost:3001'),
   GOOGLE_MAPS_API_KEY: z.preprocess(emptyToUndefined, z.string().optional()),
   FIREBASE_SERVICE_ACCOUNT_JSON: z.preprocess(
     emptyToUndefined,

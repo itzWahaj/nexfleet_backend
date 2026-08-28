@@ -7,7 +7,8 @@ services:
       POSTGRES_PASSWORD: nexfleet
       POSTGRES_DB: nexfleet
     ports:
-      - '5432:5432'
+      # Host 5433: local PostgreSQL (e.g. postgresql-x64-18) often already owns 5432
+      - '5433:5432'
     volumes:
       - nexfleet_pg:/var/lib/postgresql/data
     healthcheck:

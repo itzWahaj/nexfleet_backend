@@ -5,9 +5,18 @@ import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { LoggerModule } from 'nestjs-pino';
 import { AppConfig, validateEnv } from './config/env.validation';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
+import { HubScopeGuard } from './common/guards/hub-scope.guard';
+import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
+import { RolesGuard } from './common/guards/roles.guard';
 import { ResponseInterceptor } from './common/interceptors/response.interceptor';
 import { DatabaseModule } from './database/database.module';
 import { HealthModule } from './health/health.module';
+import { AuthModule } from './modules/auth/auth.module';
+import { HubsModule } from './modules/hubs/hubs.module';
+import { RidersModule } from './modules/riders/riders.module';
+import { UsersModule } from './modules/users/users.module';
+import { WalletModule } from './modules/wallet/wallet.module';
+import { ZonesModule } from './modules/zones/zones.module';
 import { RedisModule } from './redis/redis.module';
 
 @Module({
@@ -46,6 +55,12 @@ import { RedisModule } from './redis/redis.module';
     }),
     DatabaseModule,
     RedisModule,
+    UsersModule,
+    AuthModule,
+    HubsModule,
+    ZonesModule,
+    RidersModule,
+    WalletModule,
     HealthModule,
   ],
   providers: [
@@ -61,6 +76,9 @@ import { RedisModule } from './redis/redis.module';
     { provide: APP_INTERCEPTOR, useClass: ResponseInterceptor },
     { provide: APP_FILTER, useClass: HttpExceptionFilter },
     { provide: APP_GUARD, useClass: ThrottlerGuard },
+    { provide: APP_GUARD, useClass: JwtAuthGuard },
+    { provide: APP_GUARD, useClass: RolesGuard },
+    { provide: APP_GUARD, useClass: HubScopeGuard },
   ],
 })
 export class AppModule {}
