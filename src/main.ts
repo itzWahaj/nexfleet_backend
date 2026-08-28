@@ -17,8 +17,20 @@ async function bootstrap() {
 
   const config = app.get(ConfigService<AppConfig, true>);
   const frontendUrl = config.get('FRONTEND_URL', { infer: true });
+  const allowedOrigins = new Set([
+    frontendUrl,
+    frontendUrl.replace('://localhost', '://127.0.0.1'),
+    frontendUrl.replace('://127.0.0.1', '://localhost'),
+  ]);
+
   app.enableCors({
-    origin: frontendUrl,
+    origin: (origin, callback) => {
+      if (!origin || allowedOrigins.has(origin)) {
+        callback(null, origin ?? frontendUrl);
+        return;
+      }
+      callback(new Error(`CORS blocked origin: ${origin}`));
+    },
     credentials: true,
   });
 
